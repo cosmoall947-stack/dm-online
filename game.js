@@ -543,13 +543,17 @@ function renderZoneCards(cards, owner, zone) {
     const events = owner === 'my'
       ? `draggable="true"
          onmouseenter="startHover('${c.img}')"
-         onmouseleave="endHover()"
+         onmouseleave="endHover();cancelLongPress()"
+         onmousedown="startLongPress('${c.img}')"
+         onmouseup="cancelLongPress()"
          ondragstart="onDragStart(event,'${owner}','${zone}',${i})"
          ondragend="onDragEnd()"
          onclick="onCardClick(event,'${owner}','${zone}',${i})"
          `
       : `onmouseenter="startHover('${c.img}')"
-         onmouseleave="endHover()"
+         onmouseleave="endHover();cancelLongPress()"
+         onmousedown="startLongPress('${c.img}')"
+         onmouseup="cancelLongPress()"
          onclick="onCardClick(event,'${owner}','${zone}',${i})"
          `;
     return `<div class="card ${tapStyle}" data-owner="${owner}" data-zone="${zone}" data-idx="${i}" ${events}>
@@ -564,7 +568,9 @@ function renderHandZone() {
     `<div class="card" data-owner="my" data-zone="hand" data-idx="${i}"
        draggable="true"
        onmouseenter="startHover('${c.img}')"
-       onmouseleave="endHover()"
+       onmouseleave="endHover();cancelLongPress()"
+       onmousedown="startLongPress('${c.img}')"
+       onmouseup="cancelLongPress()"
        ondragstart="onDragStart(event,'my','hand',${i})"
        ondragend="onDragEnd()"
        onclick="onCardClick(event,'my','hand',${i})">
@@ -854,8 +860,10 @@ function openGraveyard(owner) {
           : cards.map((c, i) => `
               <div class="card"
                 onmouseenter="startHover('${c.img}')"
-                onmouseleave="endHover()"
-                ${owner === 'my' ? `onclick="reviveFromGrave(${i})"  title="クリックで手札に戻す"` : ''}>
+                onmouseleave="endHover();cancelLongPress()"
+                onmousedown="startLongPress('${c.img}')"
+                onmouseup="cancelLongPress()"
+                ${owner === 'my' ? `onclick="reviveFromGrave(${i})" title="クリックで手札に戻す"` : ''}>
                 <img src="${c.img}" alt="">
               </div>`).join('')}
       </div>
@@ -883,6 +891,42 @@ function reviveFromGrave(idx) {
   closeGraveyard();
   syncMyZones();
   renderBoard();
+}
+
+// ── LONG PRESS → 小ウィンドウで原寸表示 ────────────────────
+let _longPressTimer = null;
+
+function startLongPress(imgSrc) {
+  cancelLongPress();
+  _longPressTimer = setTimeout(() => {
+    openImageWindow(imgSrc);
+  }, 3000);
+}
+
+function cancelLongPress() {
+  clearTimeout(_longPressTimer);
+  _longPressTimer = null;
+}
+
+function openImageWindow(imgSrc) {
+  const w = window.open('', '_blank',
+    'width=420,height=588,resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no');
+  if (!w) { toast('ポップアップがブロックされました。許可してください。'); return; }
+  w.document.write(`<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <title>カード</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#111; display:flex; align-items:center;
+           justify-content:center; width:100vw; height:100vh; overflow:hidden; }
+    img { max-width:100%; max-height:100%; object-fit:contain;
+          border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.8); }
+  </style>
+</head><body>
+  <img src="${imgSrc}" alt="card">
+</body></html>`);
+  w.document.close();
 }
 
 // ── CARD PREVIEW（右パネル） ───────────────────────────────
@@ -925,6 +969,8 @@ window.onDrop           = onDrop;
 window.onCardClick      = onCardClick;
 window.startHover       = startHover;
 window.endHover         = endHover;
+window.startLongPress   = startLongPress;
+window.cancelLongPress  = cancelLongPress;
 window.openGraveyard    = openGraveyard;
 window.closeGraveyard   = closeGraveyard;
 window.reviveFromGrave  = reviveFromGrave;
