@@ -918,13 +918,63 @@ function openImageWindow(imgSrc) {
   <title>カード</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#111; display:flex; align-items:center;
-           justify-content:center; width:100vw; height:100vh; overflow:hidden; }
-    img { max-width:100%; max-height:100%; object-fit:contain;
-          border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.8); }
+    body { background:#111; overflow:hidden; width:100vw; height:100vh;
+           display:flex; align-items:center; justify-content:center; }
+    #wrap { position:relative; display:flex; align-items:center; justify-content:center;
+            width:100%; height:100%; }
+    img { border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.8);
+          transform-origin:center center; cursor:grab; user-select:none;
+          max-width:90%; max-height:90%; transition:none; }
+    img.grabbing { cursor:grabbing; }
+    #hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+            color:rgba(255,255,255,0.35); font-size:11px; font-family:sans-serif;
+            pointer-events:none; }
   </style>
 </head><body>
-  <img src="${imgSrc}" alt="card">
+  <div id="wrap"><img id="card" src="${imgSrc}" alt="card" draggable="false"></div>
+  <div id="hint">ホイール：ズーム　ドラッグ：移動　ダブルクリック：リセット</div>
+  <script>
+    const img = document.getElementById('card');
+    let scale = 1, tx = 0, ty = 0;
+    let dragging = false, startX, startY, startTx, startTy;
+
+    function applyTransform() {
+      img.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+    }
+
+    // ホイールでズーム
+    document.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 1.1 : 0.91;
+      scale = Math.min(10, Math.max(0.2, scale * delta));
+      applyTransform();
+    }, { passive: false });
+
+    // ドラッグで移動
+    img.addEventListener('mousedown', e => {
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      startTx = tx; startTy = ty;
+      img.classList.add('grabbing');
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      tx = startTx + (e.clientX - startX);
+      ty = startTy + (e.clientY - startY);
+      applyTransform();
+    });
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+      img.classList.remove('grabbing');
+    });
+
+    // ダブルクリックでリセット
+    img.addEventListener('dblclick', () => {
+      scale = 1; tx = 0; ty = 0;
+      applyTransform();
+    });
+  </script>
 </body></html>`);
   w.document.close();
 }
