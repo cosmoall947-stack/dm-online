@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DM Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app"></div>
+  <div id="card-zoom" class="card-zoom-overlay" style="display:none">
+    <img id="card-zoom-img" src="" alt="">
+  </div>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
+    import { getDatabase, ref, set, get, update, onValue, push, remove, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/11.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA7Lrg2s-5JJkG_BTMKD6ZQto7Y52f5cqw",
+      authDomain: "raid-frontier.firebaseapp.com",
+      databaseURL: "https://raid-frontier-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "raid-frontier",
+      storageBucket: "raid-frontier.firebasestorage.app",
+      messagingSenderId: "566479677356",
+      appId: "1:566479677356:web:c933167cbce75c2937fc09"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.RTDB = getDatabase(app);
+    window.FB = { ref, set, get, update, onValue, push, remove, serverTimestamp };
+
+    const s = document.createElement('script');
+    s.src = 'game.js';
+    document.body.appendChild(s);
+  </script>
+</body>
+</html>

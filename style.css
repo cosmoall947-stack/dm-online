@@ -1,0 +1,567 @@
+:root {
+  --bg: #1a1a2e;
+  --bg2: #16213e;
+  --bg3: #0f3460;
+  --zone-bg: rgba(255,255,255,0.04);
+  --zone-border: rgba(255,255,255,0.12);
+  --text: #e0e0e0;
+  --text2: #888;
+  --accent: #e94560;
+  --accent2: #0f3460;
+  --card-w: 72px;
+  --card-h: 100px;
+  --card-radius: 5px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+  user-select: none;
+}
+
+#app { width: 100%; min-height: 100vh; }
+
+/* ── LOBBY ── */
+.lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+}
+.lobby h1 { font-size: 2rem; color: var(--accent); letter-spacing: 3px; margin-bottom: 8px; }
+.lobby .subtitle { color: var(--text2); margin-bottom: 24px; }
+.lobby-card {
+  background: var(--bg2);
+  border: 1px solid var(--zone-border);
+  border-radius: 12px;
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 320px;
+}
+.lobby-card h2 { font-size: 1rem; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.lobby-card input[type=text] {
+  background: var(--bg3);
+  border: 1px solid var(--zone-border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 100%;
+}
+.lobby-card input[type=text]:focus { outline: none; border-color: var(--accent); }
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn.secondary {
+  background: var(--bg3);
+  border: 1px solid var(--zone-border);
+}
+.btn.secondary:hover { background: #1a4080; }
+.divider { border: none; border-top: 1px solid var(--zone-border); margin: 4px 0; }
+
+/* ── SETUP ── */
+.setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 20px;
+  padding: 32px;
+}
+.setup h2 { font-size: 1.3rem; }
+.setup .deck-drop-area {
+  width: 360px;
+  height: 160px;
+  border: 2px dashed var(--zone-border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.setup .deck-drop-area:hover, .setup .deck-drop-area.dragover {
+  border-color: var(--accent);
+  background: rgba(233,69,96,0.05);
+  color: var(--text);
+}
+.setup .deck-drop-area .icon { font-size: 2rem; }
+.deck-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 600px;
+  justify-content: center;
+}
+.deck-preview img {
+  width: 48px;
+  height: 67px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--zone-border);
+}
+.setup .status { color: var(--text2); font-size: 12px; }
+.setup .status.ok { color: #4caf50; }
+.setup .status.wait { color: #ff9800; }
+
+/* ── GAME BOARD ── */
+.board {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Header */
+.board-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--zone-border);
+  flex-shrink: 0;
+}
+.board-header .room-id { color: var(--text2); font-size: 11px; }
+.board-header .room-id span { color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.turn-indicator {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: var(--bg3);
+}
+.turn-indicator.my-turn { background: var(--accent); color: #fff; }
+.board-header .spacer { flex: 1; }
+.board-header .round { color: var(--text2); font-size: 12px; }
+
+/* Player areas */
+.player-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 6px 12px;
+  gap: 5px;
+}
+.player-area.opponent { background: rgba(0,0,0,0.15); }
+
+/* Zone layout */
+.zone-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.zone-row.shields-row { align-items: center; }
+
+/* Zones */
+.zone {
+  border: 1px dashed var(--zone-border);
+  border-radius: 8px;
+  background: var(--zone-bg);
+  padding: 4px 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: flex-start;
+  min-height: calc(var(--card-h) + 12px);
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.zone.battle { flex: 1; }
+.zone.mana    { flex: 1; }
+.zone-label {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  font-size: 9px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+.zone.drop-target {
+  border-color: var(--accent);
+  background: rgba(233,69,96,0.08);
+}
+
+/* Hand zone (wider, at bottom) */
+.zone.hand {
+  min-height: calc(var(--card-h) + 16px);
+  flex: 1;
+  border-color: rgba(100,200,100,0.3);
+}
+.zone.hand.drop-target { border-color: #4caf50; background: rgba(76,175,80,0.08); }
+
+/* Side panel (deck, graveyard, shields) */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.side-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.side-zone-label {
+  font-size: 9px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.side-zone-count {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Shields row */
+.shields-container {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.shield-slot {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--zone-border);
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.shield-slot.empty {
+  border-style: dashed;
+  opacity: 0.4;
+}
+.shield-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--card-radius);
+}
+.shield-slot .shield-back {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.shield-slot.drop-target { border-color: var(--accent); }
+
+/* Divider between players */
+.board-divider {
+  height: 2px;
+  background: var(--zone-border);
+  flex-shrink: 0;
+  position: relative;
+}
+.board-divider::after {
+  content: '⚔';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  background: var(--bg);
+  padding: 0 8px;
+  color: var(--text2);
+}
+
+/* Action bar */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--bg2);
+  border-top: 1px solid var(--zone-border);
+  flex-shrink: 0;
+}
+.action-bar .spacer { flex: 1; }
+.btn.end-turn {
+  background: var(--accent);
+  font-size: 14px;
+  padding: 8px 24px;
+}
+.btn.end-turn:disabled { opacity: 0.4; cursor: default; }
+.btn.draw-btn {
+  background: var(--bg3);
+  border: 1px solid var(--zone-border);
+  font-size: 13px;
+  padding: 7px 16px;
+}
+.btn.draw-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── CARD ── */
+.card {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  cursor: grab;
+  position: relative;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: box-shadow 0.1s;
+  background: var(--bg3);
+}
+.card:active { cursor: grabbing; }
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.card.tapped {
+  transform: rotate(90deg);
+  margin: 14px 14px 14px 0;
+}
+.card:hover { box-shadow: 0 0 0 2px var(--accent); z-index: 2; }
+.card.dragging { opacity: 0.4; }
+
+/* Deck card (face down) */
+.card.face-down img { filter: brightness(0.6); }
+.deck-card {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  background: var(--bg3);
+  border: 1px solid var(--zone-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: box-shadow 0.1s, border-color 0.1s;
+}
+.deck-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.deck-card .deck-count {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.6);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.deck-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--card-radius);
+  pointer-events: none;
+}
+
+/* Graveyard */
+.grave-card {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  background: var(--bg3);
+  border: 1px dashed var(--zone-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.1s;
+  overflow: hidden;
+}
+.grave-card:hover { border-color: var(--accent); }
+.grave-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--card-radius);
+  pointer-events: none;
+}
+.grave-card .grave-count {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.6);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.grave-card.drop-target { border-color: #ff5722; background: rgba(255,87,34,0.1); }
+
+/* ── DRAG GHOST ── */
+#drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: none;
+}
+#drag-ghost img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── ZOOM OVERLAY ── */
+.card-zoom-overlay {
+  position: fixed;
+  z-index: 8000;
+  pointer-events: none;
+  padding: 8px;
+  background: rgba(0,0,0,0.85);
+  border-radius: 10px;
+  border: 1px solid var(--zone-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+}
+.card-zoom-overlay img {
+  width: 220px;
+  height: 308px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--zone-border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal h3 { font-size: 1rem; }
+.modal .card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.modal .card-list .card { cursor: pointer; }
+.modal .card-list .card:hover { box-shadow: 0 0 0 2px #4caf50; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── WAITING SCREEN ── */
+.waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+  color: var(--text2);
+}
+.waiting h2 { color: var(--text); }
+.waiting .room-code {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: var(--accent);
+  background: var(--bg2);
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid var(--zone-border);
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--zone-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 9000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#toast.show { opacity: 1; }
+
+/* ── LOG ── */
+.game-log {
+  position: fixed;
+  right: 12px;
+  bottom: 56px;
+  width: 220px;
+  max-height: 160px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.6);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text2);
+  z-index: 100;
+  pointer-events: none;
+}
+.game-log .log-entry { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.game-log .log-entry.mine { color: #81c784; }
+.game-log .log-entry.opp  { color: #e57373; }
+.game-log .log-entry.sys  { color: #90caf9; }
