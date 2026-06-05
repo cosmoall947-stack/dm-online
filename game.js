@@ -334,16 +334,17 @@ function listenOpponent() {
     }
   });
 
-  // ログ監視
+  // ログ監視（重複防止：処理済みのタイムスタンプを記録）
+  let lastLogTs = Date.now(); // 開始時刻より前のログは無視
   const unsub3 = onValue(dbRef(roomPath('logs')), snap => {
     const logs = snap.val();
     if (!logs) return;
-    // 相手のログを表示
-    const entries = Object.values(logs).sort((a,b) => a.t - b.t);
+    const entries = Object.values(logs)
+      .filter(e => e.role !== S.role && e.t > lastLogTs)
+      .sort((a, b) => a.t - b.t);
     entries.forEach(e => {
-      if (e.role !== S.role) {
-        addLog(e.msg, 'opp');
-      }
+      addLog(e.msg, 'opp');
+      lastLogTs = Math.max(lastLogTs, e.t);
     });
   });
 
@@ -463,25 +464,40 @@ function renderBoard() {
 
       </div>
 
-      <!-- 右パネル（シールド＋ログ＋ボタン） -->
+      <!-- 右パネル（シールド＋ログ＋プレビュー＋ボタン） -->
       <div class="board-right">
+
+        <!-- シールド -->
         <div class="right-shields-area">
           <div class="right-shield-row">
             <div class="right-section-label">相手のシールド</div>
             ${oppShields}
           </div>
-          <div style="border-top:1px solid var(--zone-border);margin:2px 0"></div>
+          <div class="right-divider"></div>
           <div class="right-shield-row">
             <div class="right-section-label">自分のシールド</div>
             ${myShields}
           </div>
         </div>
-        <div style="border-top:1px solid var(--zone-border);margin:2px 0"></div>
+        <div class="right-divider"></div>
+
+        <!-- ログ（緑枠エリア・高さ固定） -->
         <div class="right-section-label">ログ</div>
         <div id="game-log" class="game-log"></div>
-        <div style="border-top:1px solid var(--zone-border);margin:4px 0"></div>
+        <div class="right-divider"></div>
+
+        <!-- カードプレビュー（オレンジ枠エリア・残りを埋める） -->
+        <div class="right-section-label">カードプレビュー</div>
+        <div class="card-preview-panel" id="card-preview-panel">
+          <div class="card-preview-placeholder" id="card-preview-placeholder">
+            カードにカーソルを合わせると<br>拡大表示されます
+          </div>
+          <img id="card-preview-img" src="" alt="" style="display:none">
+        </div>
+        <div class="right-divider"></div>
+
         <!-- アクションボタン -->
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="btn draw-btn" style="flex:1;font-size:12px;padding:8px 6px"
             onclick="drawCard()" ${!isMyTurn ? 'disabled' : ''}>
             ドロー<br><span style="font-size:10px;opacity:0.7">残${S.localDeck.length}枚</span>
@@ -491,6 +507,7 @@ function renderBoard() {
             ターン終了
           </button>
         </div>
+
       </div>
 
     </div>
@@ -864,41 +881,23 @@ function reviveFromGrave(idx) {
   renderBoard();
 }
 
-// ── CARD ZOOM (HOVER) ──────────────────────────────────────
-let _hoverTimer = null;
+// ── CARD PREVIEW（右パネル） ───────────────────────────────
 function startHover(e, imgSrc) {
   if (!imgSrc) return;
-  clearTimeout(_hoverTimer);
-  _hoverTimer = setTimeout(() => {
-    const zoom = document.getElementById('card-zoom');
-    if (!zoom) return;
-    zoom.querySelector('img').src = imgSrc;
-    zoom.style.display = 'block';
-    positionZoom(e);
-  }, 400);
-
-  document.addEventListener('mousemove', moveZoom);
+  const img = document.getElementById('card-preview-img');
+  const ph  = document.getElementById('card-preview-placeholder');
+  if (img) { img.src = imgSrc; img.style.display = 'block'; }
+  if (ph)  { ph.style.display = 'none'; }
 }
 function endHover() {
-  clearTimeout(_hoverTimer);
-  document.removeEventListener('mousemove', moveZoom);
-  const zoom = document.getElementById('card-zoom');
-  if (zoom) zoom.style.display = 'none';
+  const img = document.getElementById('card-preview-img');
+  const ph  = document.getElementById('card-preview-placeholder');
+  if (img) { img.src = ''; img.style.display = 'none'; }
+  if (ph)  { ph.style.display = ''; }
 }
-function moveZoom(e) {
-  positionZoom(e);
-}
-function positionZoom(e) {
-  const zoom = document.getElementById('card-zoom');
-  if (!zoom || zoom.style.display === 'none') return;
-  const W = window.innerWidth, H = window.innerHeight;
-  const zw = 236, zh = 324;
-  let x = e.clientX + 16, y = e.clientY - 20;
-  if (x + zw > W) x = e.clientX - zw - 8;
-  if (y + zh > H) y = H - zh - 8;
-  if (y < 0) y = 8;
-  zoom.style.left = x + 'px';
-  zoom.style.top  = y + 'px';
+// 旧ズーム関数（互換性のため残す）
+function moveZoom() {}
+function positionZoom() {
 }
 
 // ── INIT ───────────────────────────────────────────────────
