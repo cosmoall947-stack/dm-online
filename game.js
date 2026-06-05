@@ -136,12 +136,19 @@ function renderLobby() {
 }
 
 async function createRoom() {
+  const btn = document.querySelector('.btn');
+  if (btn) { btn.disabled = true; btn.textContent = '作成中…'; }
   const id = roomCode();
   S.roomId = id;
   S.role = 'host';
   S.myId = 'host';
-  await dbSet(roomPath('meta'), { createdAt: Date.now(), hostReady: false, guestReady: false, turn: 'host', round: 1 });
-  renderSetup();
+  try {
+    await dbSet(roomPath('meta'), { createdAt: Date.now(), hostReady: false, guestReady: false, turn: 'host', round: 1 });
+    renderSetup();
+  } catch (e) {
+    alert('Firebase接続エラー: ' + e.message + '\n\nFirebaseのセキュリティルールに dm-rooms の読み書き権限が追加されているか確認してください。');
+    if (btn) { btn.disabled = false; btn.textContent = 'ルームを作る（ホスト）'; }
+  }
 }
 
 async function joinRoom() {
@@ -366,6 +373,8 @@ async function syncMyZones() {
 
 // ── BOARD RENDER ───────────────────────────────────────────
 function renderBoard() {
+  // S.turn が未設定の場合は host のターンをデフォルトに
+  if (!S.turn) S.turn = 'host';
   const isMyTurn = S.turn === S.role;
 
   // 相手エリア
@@ -389,10 +398,10 @@ function renderBoard() {
       <!-- Header -->
       <div class="board-header">
         <span class="room-id">ルーム <span>${S.roomId}</span></span>
-        <span class="turn-indicator ${isMyTurn ? 'my-turn' : ''}">${isMyTurn ? '▶ あなたのターン' : '相手のターン'}</span>
+        <span class="turn-indicator ${isMyTurn ? 'my-turn' : ''}">${isMyTurn ? '▶ あなたのターン' : '⏳ 相手のターン'}</span>
         <span class="round">ラウンド ${S.round}</span>
         <span class="spacer"></span>
-        <span style="color:var(--text2);font-size:11px">自分: ${S.role === 'host' ? 'ホスト' : 'ゲスト'}</span>
+        <span style="color:var(--text2);font-size:11px">${S.role === 'host' ? 'ホスト' : 'ゲスト'} | turn:${S.turn}</span>
       </div>
 
       <!-- 相手エリア -->
@@ -752,7 +761,12 @@ function drawCard() {
 
 // ── TURN END ───────────────────────────────────────────────
 async function endTurn() {
-  if (S.turn !== S.role) return;
+  console.log('[endTurn] S.turn:', S.turn, '/ S.role:', S.role);
+  if (S.turn !== S.role) {
+    console.warn('[endTurn] 自分のターンではないためスキップ');
+    toast('今は相手のターンです');
+    return;
+  }
   // 自分のマナ・BZのカードをアンタップ
   S.myZones.battleZone.forEach(c => c.tapped = false);
   S.myZones.manaZone.forEach(c => c.tapped = false);
@@ -766,8 +780,13 @@ async function endTurn() {
   addLog('ターン終了 → 相手のターン', 'mine');
   pushLog('相手がターンエンド');
 
-  await syncMyZones();
-  await dbUpdate(roomPath('meta'), { turn: nextTurn, round: nextRound });
+  try {
+    await syncMyZones();
+    await dbUpdate(roomPath('meta'), { turn: nextTurn, round: nextRound });
+  } catch(e) {
+    console.error('[endTurn] Firebase error:', e);
+    toast('Firebase書き込みエラー: ' + e.message);
+  }
   renderBoard();
 }
 
