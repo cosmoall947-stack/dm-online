@@ -395,84 +395,103 @@ function renderBoard() {
 
   const html = `
     <div class="board">
-      <!-- Header -->
-      <div class="board-header">
-        <span class="room-id">ルーム <span>${S.roomId}</span></span>
-        <span class="turn-indicator ${isMyTurn ? 'my-turn' : ''}">${isMyTurn ? '▶ あなたのターン' : '⏳ 相手のターン'}</span>
-        <span class="round">ラウンド ${S.round}</span>
-        <span class="spacer"></span>
-        <span style="color:var(--text2);font-size:11px">${S.role === 'host' ? 'ホスト' : 'ゲスト'} | turn:${S.turn}</span>
+
+      <!-- 左メインエリア -->
+      <div class="board-main">
+
+        <!-- Header -->
+        <div class="board-header">
+          <span class="room-id">ルーム <span>${S.roomId}</span></span>
+          <span class="turn-indicator ${isMyTurn ? 'my-turn' : ''}">${isMyTurn ? '▶ あなたのターン' : '⏳ 相手のターン'}</span>
+          <span class="round">ラウンド ${S.round}</span>
+          <span class="spacer"></span>
+          <span style="color:var(--text2);font-size:11px">${S.role === 'host' ? 'ホスト' : 'ゲスト'} | turn:${S.turn}</span>
+        </div>
+
+        <!-- 相手エリア -->
+        <div class="player-area opponent">
+          <div class="zone-row" style="align-items:center;gap:8px">
+            ${oppDeck}
+            ${oppGrave}
+            <span style="color:var(--text2);font-size:11px;margin-left:4px">手札: ${S.oppHandCount}枚</span>
+          </div>
+          <div class="zone-row">
+            <div class="zone" id="zone-opp-battleZone" data-zone="battleZone" data-owner="opp">
+              <span class="zone-label">バトルゾーン（相手）</span>
+              ${oppBZ}
+            </div>
+          </div>
+          <div class="zone-row">
+            <div class="zone" id="zone-opp-manaZone" data-zone="manaZone" data-owner="opp">
+              <span class="zone-label">マナゾーン（相手）</span>
+              ${oppMana}
+            </div>
+          </div>
+        </div>
+
+        <div class="board-divider"></div>
+
+        <!-- 自分エリア -->
+        <div class="player-area">
+          <div class="zone-row">
+            <div class="zone" id="zone-my-manaZone" data-zone="manaZone" data-owner="my"
+              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','manaZone')">
+              <span class="zone-label">マナゾーン</span>
+              ${myMana}
+            </div>
+          </div>
+          <div class="zone-row">
+            <div class="zone" id="zone-my-battleZone" data-zone="battleZone" data-owner="my"
+              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','battleZone')">
+              <span class="zone-label">バトルゾーン</span>
+              ${myBZ}
+            </div>
+          </div>
+          <div class="zone-row" style="align-items:center;gap:8px">
+            ${myDeck}
+            ${myGrave}
+          </div>
+          <!-- 手札 -->
+          <div class="zone-row">
+            <div class="zone hand" id="zone-my-hand" data-zone="hand" data-owner="my"
+              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','hand')">
+              <span class="zone-label">手札</span>
+              ${myHand}
+            </div>
+          </div>
+        </div>
+
+        <!-- アクションバー -->
+        <div class="action-bar">
+          <button class="btn draw-btn" onclick="drawCard()" ${!isMyTurn ? 'disabled' : ''}>
+            デッキからドロー（残${S.localDeck.length}枚）
+          </button>
+          <span class="spacer"></span>
+          <button class="btn end-turn" onclick="endTurn()" ${!isMyTurn ? 'disabled' : ''}>
+            ターン終了
+          </button>
+        </div>
       </div>
 
-      <!-- 相手エリア -->
-      <div class="player-area opponent">
-        <div class="zone-row shields-row">
-          ${oppDeck}
-          ${oppGrave}
-          <div style="flex:1"></div>
-          ${oppShields}
-          <div style="margin-left:8px">${oppHandInfo}</div>
-        </div>
-        <div class="zone-row">
-          <div class="zone battle" id="zone-opp-battleZone" data-zone="battleZone" data-owner="opp">
-            <span class="zone-label">バトルゾーン（相手）</span>
-            ${oppBZ}
+      <!-- 右パネル（シールド＋ログ） -->
+      <div class="board-right">
+        <div class="right-shields-area">
+          <div class="right-shield-row">
+            <div class="right-section-label">相手のシールド</div>
+            ${oppShields}
+          </div>
+          <div style="border-top:1px solid var(--zone-border);margin:2px 0"></div>
+          <div class="right-shield-row">
+            <div class="right-section-label">自分のシールド</div>
+            ${myShields}
           </div>
         </div>
-        <div class="zone-row">
-          <div class="zone mana" id="zone-opp-manaZone" data-zone="manaZone" data-owner="opp">
-            <span class="zone-label">マナゾーン（相手）</span>
-            ${oppMana}
-          </div>
-        </div>
+        <div style="border-top:1px solid var(--zone-border);margin:2px 0"></div>
+        <div class="right-section-label">ログ</div>
+        <div id="game-log" class="game-log"></div>
       </div>
 
-      <div class="board-divider"></div>
-
-      <!-- 自分エリア -->
-      <div class="player-area">
-        <div class="zone-row">
-          <div class="zone mana" id="zone-my-manaZone" data-zone="manaZone" data-owner="my"
-            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','manaZone')">
-            <span class="zone-label">マナゾーン</span>
-            ${myMana}
-          </div>
-        </div>
-        <div class="zone-row">
-          <div class="zone battle" id="zone-my-battleZone" data-zone="battleZone" data-owner="my"
-            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','battleZone')">
-            <span class="zone-label">バトルゾーン</span>
-            ${myBZ}
-          </div>
-        </div>
-        <div class="zone-row shields-row">
-          ${myDeck}
-          ${myGrave}
-          <div style="flex:1"></div>
-          ${myShields}
-        </div>
-        <!-- 手札 -->
-        <div class="zone-row">
-          <div class="zone hand" id="zone-my-hand" data-zone="hand" data-owner="my"
-            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','hand')">
-            <span class="zone-label">手札</span>
-            ${myHand}
-          </div>
-        </div>
-      </div>
-
-      <!-- アクションバー -->
-      <div class="action-bar">
-        <button class="btn draw-btn" onclick="drawCard()" ${!isMyTurn ? 'disabled' : ''}>
-          デッキからドロー（残${S.localDeck.length}枚）
-        </button>
-        <span class="spacer"></span>
-        <button class="btn end-turn" onclick="endTurn()" ${!isMyTurn ? 'disabled' : ''}>
-          ターン終了
-        </button>
-      </div>
     </div>
-    <div id="game-log" class="game-log"></div>
   `;
 
   render(html);
