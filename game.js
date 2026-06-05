@@ -461,19 +461,9 @@ function renderBoard() {
           </div>
         </div>
 
-        <!-- アクションバー -->
-        <div class="action-bar">
-          <button class="btn draw-btn" onclick="drawCard()" ${!isMyTurn ? 'disabled' : ''}>
-            デッキからドロー（残${S.localDeck.length}枚）
-          </button>
-          <span class="spacer"></span>
-          <button class="btn end-turn" onclick="endTurn()" ${!isMyTurn ? 'disabled' : ''}>
-            ターン終了
-          </button>
-        </div>
       </div>
 
-      <!-- 右パネル（シールド＋ログ） -->
+      <!-- 右パネル（シールド＋ログ＋ボタン） -->
       <div class="board-right">
         <div class="right-shields-area">
           <div class="right-shield-row">
@@ -489,6 +479,18 @@ function renderBoard() {
         <div style="border-top:1px solid var(--zone-border);margin:2px 0"></div>
         <div class="right-section-label">ログ</div>
         <div id="game-log" class="game-log"></div>
+        <div style="border-top:1px solid var(--zone-border);margin:4px 0"></div>
+        <!-- アクションボタン -->
+        <div style="display:flex;gap:6px;">
+          <button class="btn draw-btn" style="flex:1;font-size:12px;padding:8px 6px"
+            onclick="drawCard()" ${!isMyTurn ? 'disabled' : ''}>
+            ドロー<br><span style="font-size:10px;opacity:0.7">残${S.localDeck.length}枚</span>
+          </button>
+          <button class="btn end-turn" style="flex:1;font-size:13px;padding:8px 6px"
+            onclick="endTurn()" ${!isMyTurn ? 'disabled' : ''}>
+            ターン終了
+          </button>
+        </div>
       </div>
 
     </div>

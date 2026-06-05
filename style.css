@@ -322,16 +322,8 @@ body {
   color: var(--text2);
 }
 
-/* Action bar */
-.action-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  background: var(--bg2);
-  border-top: 1px solid var(--zone-border);
-  flex-shrink: 0;
-}
+/* Action bar（非表示・ボタンは右パネルに移動） */
+.action-bar { display: none; }
 .action-bar .spacer { flex: 1; }
 .btn.end-turn {
   background: var(--accent);
