@@ -140,7 +140,8 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 右パネル（シールド＋ログ） */
@@ -198,14 +199,24 @@ body {
 
 /* Player areas */
 .player-area {
-  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   padding: 4px 10px;
   gap: 4px;
+  flex-shrink: 0;
 }
-.player-area.opponent { background: rgba(0,0,0,0.15); }
+/* 相手エリア：コンテンツぴったり */
+.player-area.opponent {
+  background: rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+/* 自分エリア：残りを使い切る */
+.player-area.me {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* Zone layout */
 .zone-row {
@@ -224,12 +235,15 @@ body {
   flex-wrap: wrap;
   gap: 5px;
   align-items: flex-start;
-  min-height: calc(var(--card-h) + 24px);
   transition: border-color 0.15s, background 0.15s;
   position: relative;
   width: 100%;
   box-sizing: border-box;
 }
+/* バトルゾーン：カード1枚分の高さ */
+.zone-battle { min-height: calc(var(--card-h) + 24px); }
+/* マナゾーン：少し低め */
+.zone-mana   { min-height: 52px; }
 .zone-label {
   position: absolute;
   top: 3px;
@@ -248,9 +262,15 @@ body {
 /* Hand zone */
 .zone.hand {
   min-height: calc(var(--card-h) + 24px);
+  flex-shrink: 0;
   border-color: rgba(100,200,100,0.3);
 }
 .zone.hand.drop-target { border-color: #4caf50; background: rgba(76,175,80,0.08); }
+
+/* zone-row-hand：手札行が見切れないように */
+.zone-row-hand {
+  flex-shrink: 0;
+}
 
 /* Side panel (deck, graveyard) */
 .side-zone {

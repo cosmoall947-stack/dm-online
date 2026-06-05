@@ -410,21 +410,21 @@ function renderBoard() {
 
         <!-- 相手エリア -->
         <div class="player-area opponent">
-          <div class="zone-row" style="align-items:center;gap:8px">
+          <div class="zone-row" style="align-items:center;gap:8px;flex-shrink:0">
             ${oppDeck}
             ${oppGrave}
             <span style="color:var(--text2);font-size:11px;margin-left:4px">手札: ${S.oppHandCount}枚</span>
           </div>
           <div class="zone-row">
-            <div class="zone" id="zone-opp-battleZone" data-zone="battleZone" data-owner="opp">
-              <span class="zone-label">バトルゾーン（相手）</span>
-              ${oppBZ}
+            <div class="zone zone-mana" id="zone-opp-manaZone" data-zone="manaZone" data-owner="opp">
+              <span class="zone-label">マナゾーン（相手）</span>
+              ${oppMana}
             </div>
           </div>
           <div class="zone-row">
-            <div class="zone" id="zone-opp-manaZone" data-zone="manaZone" data-owner="opp">
-              <span class="zone-label">マナゾーン（相手）</span>
-              ${oppMana}
+            <div class="zone zone-battle" id="zone-opp-battleZone" data-zone="battleZone" data-owner="opp">
+              <span class="zone-label">バトルゾーン（相手）</span>
+              ${oppBZ}
             </div>
           </div>
         </div>
@@ -432,27 +432,27 @@ function renderBoard() {
         <div class="board-divider"></div>
 
         <!-- 自分エリア -->
-        <div class="player-area">
+        <div class="player-area me">
           <div class="zone-row">
-            <div class="zone" id="zone-my-manaZone" data-zone="manaZone" data-owner="my"
-              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','manaZone')">
-              <span class="zone-label">マナゾーン</span>
-              ${myMana}
-            </div>
-          </div>
-          <div class="zone-row">
-            <div class="zone" id="zone-my-battleZone" data-zone="battleZone" data-owner="my"
+            <div class="zone zone-battle" id="zone-my-battleZone" data-zone="battleZone" data-owner="my"
               ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','battleZone')">
               <span class="zone-label">バトルゾーン</span>
               ${myBZ}
             </div>
           </div>
-          <div class="zone-row" style="align-items:center;gap:8px">
+          <div class="zone-row">
+            <div class="zone zone-mana" id="zone-my-manaZone" data-zone="manaZone" data-owner="my"
+              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','manaZone')">
+              <span class="zone-label">マナゾーン</span>
+              ${myMana}
+            </div>
+          </div>
+          <div class="zone-row" style="align-items:center;gap:8px;flex-shrink:0">
             ${myDeck}
             ${myGrave}
           </div>
           <!-- 手札 -->
-          <div class="zone-row">
+          <div class="zone-row zone-row-hand">
             <div class="zone hand" id="zone-my-hand" data-zone="hand" data-owner="my"
               ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'my','hand')">
               <span class="zone-label">手札</span>
