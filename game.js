@@ -584,8 +584,6 @@ function renderShields(shields, owner) {
       // 割れたシールド（自分だけimgあり）
       const imgSrc = s.img || '';
       html += `<div class="shield-slot"
-        ${imgSrc ? `onmouseenter="startHover('${imgSrc}')"` : ''}
-        onmouseleave="endHover()"
         ${owner === 'my' ? `onclick="breakShield(${i})" title="クリックで手札へ"` : ''}>
         ${imgSrc
           ? `<img src="${imgSrc}" alt="">`
@@ -596,7 +594,6 @@ function renderShields(shields, owner) {
       const isMyShield = owner === 'my';
       const hoverImg = isMyShield ? s.img : '';
       html += `<div class="shield-slot"
-        ${hoverImg ? `onmouseenter="startHover('${hoverImg}')" onmouseleave="endHover()"` : ''}
         ${isMyShield ? `draggable="true" ondragstart="onDragStart(event,'my','shields',${i})" ondragend="onDragEnd()"` : ''}
         data-owner="${owner}" data-zone="shields" data-idx="${i}">
         <div class="shield-back">🛡</div>
