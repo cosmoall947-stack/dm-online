@@ -542,15 +542,13 @@ function renderZoneCards(cards, owner, zone) {
     const tapStyle = c.tapped ? 'tapped' : '';
     const events = owner === 'my'
       ? `draggable="true"
-         onmousedown="startHover(event,'${c.img}')"
-         onmouseup="endHover()"
+         onmouseenter="startHover('${c.img}')"
          onmouseleave="endHover()"
          ondragstart="onDragStart(event,'${owner}','${zone}',${i})"
          ondragend="onDragEnd()"
          onclick="onCardClick(event,'${owner}','${zone}',${i})"
          `
-      : `onmousedown="startHover(event,'${c.img}')"
-         onmouseup="endHover()"
+      : `onmouseenter="startHover('${c.img}')"
          onmouseleave="endHover()"
          onclick="onCardClick(event,'${owner}','${zone}',${i})"
          `;
@@ -565,8 +563,7 @@ function renderHandZone() {
   return S.localHand.map((c, i) =>
     `<div class="card" data-owner="my" data-zone="hand" data-idx="${i}"
        draggable="true"
-       onmousedown="startHover(event,'${c.img}')"
-       onmouseup="endHover()"
+       onmouseenter="startHover('${c.img}')"
        onmouseleave="endHover()"
        ondragstart="onDragStart(event,'my','hand',${i})"
        ondragend="onDragEnd()"
@@ -587,8 +584,8 @@ function renderShields(shields, owner) {
       // 割れたシールド（自分だけimgあり）
       const imgSrc = s.img || '';
       html += `<div class="shield-slot"
-        onmousedown="${imgSrc ? `startHover(event,'${imgSrc}')` : ''}"
-        onmouseup="endHover()" onmouseleave="endHover()"
+        ${imgSrc ? `onmouseenter="startHover('${imgSrc}')"` : ''}
+        onmouseleave="endHover()"
         ${owner === 'my' ? `onclick="breakShield(${i})" title="クリックで手札へ"` : ''}>
         ${imgSrc
           ? `<img src="${imgSrc}" alt="">`
@@ -599,7 +596,7 @@ function renderShields(shields, owner) {
       const isMyShield = owner === 'my';
       const hoverImg = isMyShield ? s.img : '';
       html += `<div class="shield-slot"
-        ${hoverImg ? `onmousedown="startHover(event,'${hoverImg}')" onmouseup="endHover()" onmouseleave="endHover()"` : ''}
+        ${hoverImg ? `onmouseenter="startHover('${hoverImg}')" onmouseleave="endHover()"` : ''}
         ${isMyShield ? `draggable="true" ondragstart="onDragStart(event,'my','shields',${i})" ondragend="onDragEnd()"` : ''}
         data-owner="${owner}" data-zone="shields" data-idx="${i}">
         <div class="shield-back">🛡</div>
@@ -848,8 +845,7 @@ function openGraveyard(owner) {
           ? '<span style="color:var(--text2)">まだカードがありません</span>'
           : cards.map((c, i) => `
               <div class="card"
-                onmousedown="startHover(event,'${c.img}')"
-                onmouseup="endHover()"
+                onmouseenter="startHover('${c.img}')"
                 onmouseleave="endHover()"
                 ${owner === 'my' ? `onclick="reviveFromGrave(${i})"  title="クリックで手札に戻す"` : ''}>
                 <img src="${c.img}" alt="">
@@ -882,7 +878,7 @@ function reviveFromGrave(idx) {
 }
 
 // ── CARD PREVIEW（右パネル） ───────────────────────────────
-function startHover(e, imgSrc) {
+function startHover(imgSrc) {
   if (!imgSrc) return;
   const img = document.getElementById('card-preview-img');
   const ph  = document.getElementById('card-preview-placeholder');
