@@ -605,10 +605,17 @@ function renderShields(shields, owner) {
 }
 
 function renderDeckPile(count, clickable, owner) {
+  const dragAttrs = clickable && count > 0
+    ? `draggable="true"
+       ondragstart="onDragStart(event,'my','deck',0)"
+       ondragend="onDragEnd()"`
+    : '';
   return `
     <div class="side-zone">
       <span class="side-zone-label">山札</span>
-      <div class="deck-card" ${clickable ? 'onclick="drawCard()" title="クリックでドロー"' : ''}>
+      <div class="deck-card"
+        ${clickable ? 'onclick="drawCard()" title="クリックでドロー / ドラッグでゾーンへ直置き"' : ''}
+        ${dragAttrs}>
         <div style="font-size:28px;opacity:0.4">🂠</div>
         <span class="deck-count">${count}</span>
       </div>
@@ -637,6 +644,7 @@ function renderGraveyard(cards, owner) {
 function getCardFromZone(owner, zone, idx) {
   if (owner === 'my') {
     if (zone === 'hand')       return S.localHand[idx];
+    if (zone === 'deck')       return S.localDeck[0];   // 山札は常に先頭
     if (zone === 'shields')    return S.myZones.shields[idx];
     if (zone === 'battleZone') return S.myZones.battleZone[idx];
     if (zone === 'manaZone')   return S.myZones.manaZone[idx];
@@ -648,7 +656,8 @@ function getCardFromZone(owner, zone, idx) {
 function removeCardFromZone(owner, zone, idx) {
   if (owner !== 'my') return null;
   let card;
-  if (zone === 'hand')       card = S.localHand.splice(idx, 1)[0];
+  if (zone === 'hand')            card = S.localHand.splice(idx, 1)[0];
+  else if (zone === 'deck')            card = S.localDeck.shift();        // 山札先頭を取る
   else if (zone === 'shields')    card = S.myZones.shields.splice(idx, 1)[0];
   else if (zone === 'battleZone') card = S.myZones.battleZone.splice(idx, 1)[0];
   else if (zone === 'manaZone')   card = S.myZones.manaZone.splice(idx, 1)[0];
@@ -698,9 +707,11 @@ function onDragStart(e, owner, zone, idx) {
   e.dataTransfer.setDragImage(new Image(), 0, 0);
   e.dataTransfer.effectAllowed = 'move';
 
-  // ドラッグ中のカードを薄く
+  // ドラッグ中のカードを薄く（山札はdeck-cardクラス）
   setTimeout(() => {
-    const el = document.querySelector(`.card[data-owner="${owner}"][data-zone="${zone}"][data-idx="${idx}"]`);
+    const el = zone === 'deck'
+      ? document.querySelector('.deck-card')
+      : document.querySelector(`.card[data-owner="${owner}"][data-zone="${zone}"][data-idx="${idx}"]`);
     if (el) el.classList.add('dragging');
   }, 0);
 
@@ -758,7 +769,7 @@ function onDrop(e, toOwner, toZone) {
 
   addCardToZone(toZone, card);
 
-  const zoneNames = { hand: '手札', battleZone: 'バトルゾーン', manaZone: 'マナゾーン', graveyard: '墓地', shields: 'シールド' };
+  const zoneNames = { hand: '手札', deck: '山札', battleZone: 'バトルゾーン', manaZone: 'マナゾーン', graveyard: '墓地', shields: 'シールド' };
   const from = zoneNames[zone] || zone;
   const to   = zoneNames[toZone] || toZone;
   addLog(`${from} → ${to}`, 'mine');
