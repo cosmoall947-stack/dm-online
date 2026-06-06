@@ -620,7 +620,7 @@ function renderDeckPile(count, clickable, owner) {
     <div class="side-zone">
       <span class="side-zone-label">山札</span>
       <div class="deck-card"
-        ${clickable ? 'onclick="drawCard()" title="クリックでドロー / ドラッグでゾーンへ直置き"' : ''}
+        ${clickable ? 'onclick="openDeckSearch()" title="クリックでサーチ / ドラッグでゾーンへ直置き"' : ''}
         ${dragAttrs}>
         <div style="font-size:28px;opacity:0.4">🂠</div>
         <span class="deck-count">${count}</span>
@@ -839,6 +839,102 @@ async function endTurn() {
   renderBoard();
 }
 
+// ── DECK SEARCH ────────────────────────────────────────────
+function openDeckSearch() {
+  if (S.localDeck.length === 0) { toast('山札が0枚です'); return; }
+  addLog('山札からサーチ中', 'mine');
+  pushLog('相手が山札からサーチ中');
+
+  const existing = document.getElementById('deck-search-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'deck-search-modal';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:680px;width:90vw">
+      <h3>山札からサーチ（${S.localDeck.length}枚）</h3>
+      <div class="card-list" style="max-height:480px">
+        ${S.localDeck.map((c, i) => `
+          <div class="card"
+            onmouseenter="startHover('${c.img}')"
+            onmouseleave="endHover()"
+            onmousedown="startLongPress('${c.img}')"
+            onmouseup="cancelLongPress()"
+            onclick="openDeckDest(${i})"
+            title="クリックで移動先を選択">
+            <img src="${c.img}" alt="">
+          </div>`).join('')}
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeDeckSearch()">キャンセル</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) closeDeckSearch(); });
+  document.body.appendChild(modal);
+}
+
+function openDeckDest(idx) {
+  const card = S.localDeck[idx];
+  if (!card) return;
+
+  const existing = document.getElementById('deck-dest-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'deck-dest-modal';
+  modal.style.zIndex = '6000';
+  modal.innerHTML = `
+    <div class="modal" style="min-width:220px">
+      <h3>移動先を選択</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <button class="btn" onclick="moveDeckCardTo(${idx},'hand')">手札へ</button>
+        <button class="btn secondary" onclick="moveDeckCardTo(${idx},'manaZone')">マナゾーンへ</button>
+        <button class="btn secondary" onclick="moveDeckCardTo(${idx},'battleZone')">バトルゾーンへ</button>
+        <button class="btn secondary" onclick="moveDeckCardTo(${idx},'graveyard')">墓地へ</button>
+      </div>
+      <div class="modal-actions" style="margin-top:12px">
+        <button class="btn secondary" onclick="closeDeckDest()">戻る</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) closeDeckDest(); });
+  document.body.appendChild(modal);
+}
+
+function moveDeckCardTo(idx, toZone) {
+  const card = S.localDeck.splice(idx, 1)[0];
+  if (!card) return;
+
+  addCardToZone(toZone, card);
+
+  // 残りをシャッフル
+  S.localDeck = shuffle(S.localDeck);
+
+  const zoneNames = { hand: '手札', battleZone: 'バトルゾーン', manaZone: 'マナゾーン', graveyard: '墓地' };
+  addLog(`サーチ → ${zoneNames[toZone]}へ移動`, 'mine');
+  addLog('山札がシャッフルされました', 'mine');
+  pushLog(`相手がサーチして${zoneNames[toZone]}へ移動、山札をシャッフル`);
+
+  closeDeckDest();
+  closeDeckSearch();
+  syncMyZones();
+  renderBoard();
+}
+
+function closeDeckSearch() {
+  endHover();
+  const el = document.getElementById('deck-search-modal');
+  if (el) el.remove();
+}
+
+function closeDeckDest() {
+  const el = document.getElementById('deck-dest-modal');
+  if (el) el.remove();
+}
+
 // ── GRAVEYARD MODAL ────────────────────────────────────────
 function openGraveyard(owner) {
   S.graveModal = owner;
@@ -1021,6 +1117,11 @@ window.startHover       = startHover;
 window.endHover         = endHover;
 window.startLongPress   = startLongPress;
 window.cancelLongPress  = cancelLongPress;
+window.openDeckSearch   = openDeckSearch;
+window.openDeckDest     = openDeckDest;
+window.moveDeckCardTo   = moveDeckCardTo;
+window.closeDeckSearch  = closeDeckSearch;
+window.closeDeckDest    = closeDeckDest;
 window.openGraveyard    = openGraveyard;
 window.closeGraveyard   = closeGraveyard;
 window.reviveFromGrave  = reviveFromGrave;
