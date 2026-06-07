@@ -85,15 +85,27 @@ function resizeImage(file) {
     reader.onload = e => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const W = 200, H = 280;
-        canvas.width = W; canvas.height = H;
-        const ctx = canvas.getContext('2d');
-        // カバーフィット
-        const scale = Math.max(W / img.width, H / img.height);
-        const sw = img.width * scale, sh = img.height * scale;
-        ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        // ── small（Firebase同期・ゲームボード用）200×280px ──
+        const cSmall = document.createElement('canvas');
+        const SW = 200, SH = 280;
+        cSmall.width = SW; cSmall.height = SH;
+        const ctxS = cSmall.getContext('2d');
+        const scaleS = Math.max(SW / img.width, SH / img.height);
+        ctxS.drawImage(img, (SW - img.width * scaleS) / 2, (SH - img.height * scaleS) / 2,
+                        img.width * scaleS, img.height * scaleS);
+        const imgSmall = cSmall.toDataURL('image/jpeg', 0.82);
+
+        // ── full（ローカルのみ・プレビュー・小ウィンドウ用）元サイズ維持 ──
+        // 最大 600×840px にキャップ（それ以下はそのまま）
+        const MAX_W = 600, MAX_H = 840;
+        const scaleF = Math.min(1, MAX_W / img.width, MAX_H / img.height);
+        const FW = Math.round(img.width * scaleF), FH = Math.round(img.height * scaleF);
+        const cFull = document.createElement('canvas');
+        cFull.width = FW; cFull.height = FH;
+        cFull.getContext('2d').drawImage(img, 0, 0, FW, FH);
+        const imgFull = cFull.toDataURL('image/jpeg', 0.92);
+
+        resolve({ imgSmall, imgFull });
       };
       img.src = e.target.result;
     };
@@ -205,8 +217,8 @@ async function handleFileSelect(files) {
 
   const cards = [];
   for (let i = 0; i < arr.length; i++) {
-    const img = await resizeImage(arr[i]);
-    cards.push({ id: uid(), img });
+    const { imgSmall, imgFull } = await resizeImage(arr[i]);
+    cards.push({ id: uid(), img: imgSmall, imgFull });
     statusEl.textContent = `読み込み中… ${i+1}/${arr.length}`;
   }
 
@@ -366,9 +378,13 @@ async function syncMyZones() {
       broken: s.broken,
       img: s.broken ? s.img : null   // 割れたシールドのみ画像公開
     })),
-    battleZone: S.myZones.battleZone,
-    manaZone:   S.myZones.manaZone,
-    graveyard:  S.myZones.graveyard,
+    // imgFull はローカルのみ・Firebase には送らない
+    battleZone: S.myZones.battleZone.map(c => ({
+      id: c.id, img: c.img, tapped: c.tapped,
+      stack: (c.stack || []).map(sc => ({ id: sc.id, img: sc.img }))
+    })),
+    manaZone: S.myZones.manaZone.map(c => ({ id: c.id, img: c.img, tapped: c.tapped })),
+    graveyard: S.myZones.graveyard.map(c => ({ id: c.id, img: c.img })),
   });
 }
 
@@ -545,19 +561,20 @@ function renderZoneCards(cards, owner, zone) {
     if (zone === 'battleZone') return renderBZStack(c, i, owner);
 
     const tapStyle = c.tapped ? 'tapped' : '';
+    const _prev = c.imgFull || c.img;
     const events = owner === 'my'
       ? `draggable="true"
-         onmouseenter="startHover('${c.img}')"
+         onmouseenter="startHover('${_prev}')"
          onmouseleave="endHover();cancelLongPress()"
-         onmousedown="startLongPress('${c.img}')"
+         onmousedown="startLongPress('${_prev}')"
          onmouseup="cancelLongPress()"
          ondragstart="onDragStart(event,'${owner}','${zone}',${i})"
          ondragend="onDragEnd()"
          onclick="onCardClick(event,'${owner}','${zone}',${i})"
          `
-      : `onmouseenter="startHover('${c.img}')"
+      : `onmouseenter="startHover('${_prev}')"
          onmouseleave="endHover();cancelLongPress()"
-         onmousedown="startLongPress('${c.img}')"
+         onmousedown="startLongPress('${_prev}')"
          onmouseup="cancelLongPress()"
          onclick="onCardClick(event,'${owner}','${zone}',${i})"
          `;
@@ -596,8 +613,8 @@ function renderBZStack(c, i, owner) {
         <div class="card"
           data-owner="my" data-zone="battleZone" data-idx="${i}"
           draggable="true"
-          onmouseenter="startHover('${c.img}')" onmouseleave="endHover();cancelLongPress()"
-          onmousedown="startLongPress('${c.img}')" onmouseup="cancelLongPress()"
+          onmouseenter="startHover('${c.imgFull||c.img}')" onmouseleave="endHover();cancelLongPress()"
+          onmousedown="startLongPress('${c.imgFull||c.img}')" onmouseup="cancelLongPress()"
           ondragstart="onDragStart(event,'my','battleZone',${i})"
           ondragend="onDragEnd()"
           ondragover="onDragOverCard(event)"
@@ -615,8 +632,8 @@ function renderBZStack(c, i, owner) {
       ${underHtml}
       <div style="position:absolute;top:${topOffset}px;left:0;z-index:${stack.length+2}">
         <div class="card"
-          onmouseenter="startHover('${c.img}')" onmouseleave="endHover();cancelLongPress()"
-          onmousedown="startLongPress('${c.img}')" onmouseup="cancelLongPress()">
+          onmouseenter="startHover('${c.imgFull||c.img}')" onmouseleave="endHover();cancelLongPress()"
+          onmousedown="startLongPress('${c.imgFull||c.img}')" onmouseup="cancelLongPress()">
           <img src="${c.img}" alt="">
         </div>
         ${badge}
@@ -630,9 +647,9 @@ function renderHandZone() {
   return S.localHand.map((c, i) =>
     `<div class="card" data-owner="my" data-zone="hand" data-idx="${i}"
        draggable="true"
-       onmouseenter="startHover('${c.img}')"
+       onmouseenter="startHover('${c.imgFull||c.img}')"
        onmouseleave="endHover();cancelLongPress()"
-       onmousedown="startLongPress('${c.img}')"
+       onmousedown="startLongPress('${c.imgFull||c.img}')"
        onmouseup="cancelLongPress()"
        ondragstart="onDragStart(event,'my','hand',${i})"
        ondragend="onDragEnd()"
@@ -735,10 +752,11 @@ function removeCardFromZone(owner, zone, idx) {
 }
 
 function addCardToZone(zone, card) {
-  if (zone === 'hand')            S.localHand.push({ id: card.id, img: card.img });
-  else if (zone === 'battleZone') S.myZones.battleZone.push({ id: card.id, img: card.img, tapped: false, stack: [] });
-  else if (zone === 'manaZone')   S.myZones.manaZone.push({ id: card.id, img: card.img, tapped: false });
-  else if (zone === 'graveyard')  S.myZones.graveyard.push({ id: card.id, img: card.img });
+  const full = card.imgFull || card.img; // フルサイズがあれば保持
+  if (zone === 'hand')            S.localHand.push({ id: card.id, img: card.img, imgFull: full });
+  else if (zone === 'battleZone') S.myZones.battleZone.push({ id: card.id, img: card.img, imgFull: full, tapped: false, stack: [] });
+  else if (zone === 'manaZone')   S.myZones.manaZone.push({ id: card.id, img: card.img, imgFull: full, tapped: false });
+  else if (zone === 'graveyard')  S.myZones.graveyard.push({ id: card.id, img: card.img, imgFull: full });
 }
 
 // タップ/アンタップ
