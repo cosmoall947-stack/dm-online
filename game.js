@@ -535,10 +535,15 @@ function renderBoard() {
   if (S.graveModal) openGraveyard(S.graveModal);
 }
 
+const STACK_OFFSET = 9; // pxずつずらす
+
 // ── ZONE CARD RENDERING ────────────────────────────────────
 function renderZoneCards(cards, owner, zone) {
   if (!cards || cards.length === 0) return '';
   return cards.map((c, i) => {
+    // バトルゾーンはスタック専用レンダラー
+    if (zone === 'battleZone') return renderBZStack(c, i, owner);
+
     const tapStyle = c.tapped ? 'tapped' : '';
     const events = owner === 'my'
       ? `draggable="true"
@@ -560,6 +565,64 @@ function renderZoneCards(cards, owner, zone) {
       <img src="${c.img}" alt="">
     </div>`;
   }).join('');
+}
+
+// バトルゾーン専用：スタック表示
+function renderBZStack(c, i, owner) {
+  const stack = c.stack || [];
+  const topOffset = stack.length * STACK_OFFSET;
+  const wrapH    = 100 + topOffset; // card-h=100px
+
+  // 下のカード（視覚のみ・操作不可）
+  const underHtml = stack.map((sc, si) => {
+    const layerTop = (stack.length - 1 - si) * STACK_OFFSET;
+    return `<div class="card-stack-under" style="top:${layerTop}px;z-index:${si+1}">
+      <img src="${sc.img}" alt="">
+    </div>`;
+  }).join('');
+
+  // スタック数バッジ
+  const badge = stack.length > 0
+    ? `<div class="stack-badge" onclick="peekStack('${owner}',${i})" title="スタック確認">×${stack.length+1}</div>`
+    : '';
+
+  const tapClass = c.tapped ? 'tapped' : '';
+
+  if (owner === 'my') {
+    return `
+    <div class="card-stack-wrap ${tapClass}" style="height:${wrapH}px" data-owner="my" data-zone="battleZone" data-idx="${i}">
+      ${underHtml}
+      <div style="position:absolute;top:${topOffset}px;left:0;z-index:${stack.length+2}">
+        <div class="card"
+          data-owner="my" data-zone="battleZone" data-idx="${i}"
+          draggable="true"
+          onmouseenter="startHover('${c.img}')" onmouseleave="endHover();cancelLongPress()"
+          onmousedown="startLongPress('${c.img}')" onmouseup="cancelLongPress()"
+          ondragstart="onDragStart(event,'my','battleZone',${i})"
+          ondragend="onDragEnd()"
+          ondragover="onDragOverCard(event)"
+          ondragleave="onDragLeaveCard(event)"
+          ondrop="onDropOnCard(event,${i})"
+          onclick="onCardClick(event,'my','battleZone',${i})">
+          <img src="${c.img}" alt="">
+        </div>
+        ${badge}
+      </div>
+    </div>`;
+  } else {
+    return `
+    <div class="card-stack-wrap ${tapClass}" style="height:${wrapH}px">
+      ${underHtml}
+      <div style="position:absolute;top:${topOffset}px;left:0;z-index:${stack.length+2}">
+        <div class="card"
+          onmouseenter="startHover('${c.img}')" onmouseleave="endHover();cancelLongPress()"
+          onmousedown="startLongPress('${c.img}')" onmouseup="cancelLongPress()">
+          <img src="${c.img}" alt="">
+        </div>
+        ${badge}
+      </div>
+    </div>`;
+  }
 }
 
 function renderHandZone() {
@@ -672,10 +735,10 @@ function removeCardFromZone(owner, zone, idx) {
 }
 
 function addCardToZone(zone, card) {
-  if (zone === 'hand')         S.localHand.push(card);
-  else if (zone === 'battleZone') S.myZones.battleZone.push({ ...card, tapped: false });
-  else if (zone === 'manaZone')   S.myZones.manaZone.push({ ...card, tapped: false });
-  else if (zone === 'graveyard')  S.myZones.graveyard.push(card);
+  if (zone === 'hand')            S.localHand.push({ id: card.id, img: card.img });
+  else if (zone === 'battleZone') S.myZones.battleZone.push({ id: card.id, img: card.img, tapped: false, stack: [] });
+  else if (zone === 'manaZone')   S.myZones.manaZone.push({ id: card.id, img: card.img, tapped: false });
+  else if (zone === 'graveyard')  S.myZones.graveyard.push({ id: card.id, img: card.img });
 }
 
 // タップ/アンタップ
@@ -768,21 +831,120 @@ function onDrop(e, toOwner, toZone) {
   const card = removeCardFromZone(owner, zone, idx);
   if (!card) return;
 
-  // tapped フラグをリセット（手札や墓地に戻る場合）
-  if (toZone === 'hand' || toZone === 'graveyard') {
-    delete card.tapped;
-  }
-
-  addCardToZone(toZone, card);
-
   const zoneNames = { hand: '手札', deck: '山札', battleZone: 'バトルゾーン', manaZone: 'マナゾーン', graveyard: '墓地', shields: 'シールド' };
   const from = zoneNames[zone] || zone;
   const to   = zoneNames[toZone] || toZone;
+
+  // BZからスタックごと移動（スタックがある場合は全カードを展開）
+  const cardStack = card.stack || [];
+  if (zone === 'battleZone' && cardStack.length > 0 && toZone !== 'battleZone') {
+    const allCards = [...cardStack, { id: card.id, img: card.img }]; // 下→上の順
+    allCards.forEach(sc => addCardToZone(toZone, sc));
+    addLog(`${from}（スタック${allCards.length}枚）→ ${to}`, 'mine');
+    pushLog(`相手が${from}から${allCards.length}枚スタックを${to}へ移動`);
+    syncMyZones();
+    renderBoard();
+    return;
+  }
+
+  addCardToZone(toZone, card);
   addLog(`${from} → ${to}`, 'mine');
   pushLog(`相手が${from}から${to}へカードを移動`);
 
   syncMyZones();
   renderBoard();
+}
+
+// ── STACK ON CARD (進化) ────────────────────────────────────
+function onDragOverCard(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('stack-drop-hover');
+}
+function onDragLeaveCard(e) {
+  e.currentTarget.classList.remove('stack-drop-hover');
+}
+function onDropOnCard(e, targetIdx) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.currentTarget.classList.remove('stack-drop-hover');
+  if (!S.dragState) return;
+
+  const { owner, zone, idx } = S.dragState;
+  S.dragState = null;
+  if (owner !== 'my') return;
+  // 同じカードへのドロップは無視
+  if (zone === 'battleZone' && idx === targetIdx) return;
+
+  // BZ内でドラッグの場合はインデックスずれを補正
+  let adjTarget = targetIdx;
+  if (zone === 'battleZone' && idx < targetIdx) adjTarget = targetIdx - 1;
+
+  const card = removeCardFromZone(owner, zone, idx);
+  if (!card) return;
+
+  const target = S.myZones.battleZone[adjTarget];
+  if (!target) return;
+
+  // 現在のtopをstackへ積む、新しいtopは dragged card
+  if (!target.stack) target.stack = [];
+  target.stack.push({ id: target.id, img: target.img });
+
+  // draggedカード自身もスタックを持つ場合はそれも連結
+  const dragStack = card.stack || [];
+  if (dragStack.length > 0) target.stack.push(...dragStack);
+
+  target.id  = card.id;
+  target.img = card.img;
+
+  const zoneNames = { hand: '手札', deck: '山札', battleZone: 'バトルゾーン', manaZone: 'マナゾーン', graveyard: '墓地' };
+  const total = target.stack.length + 1;
+  addLog(`${zoneNames[zone] || zone} → バトルゾーンに重ねた（計${total}枚）`, 'mine');
+  pushLog(`相手がバトルゾーンにカードを重ねた（計${total}枚）`);
+
+  syncMyZones();
+  renderBoard();
+}
+
+// スタック中のカードを確認するモーダル
+function peekStack(owner, idx) {
+  const cards = owner === 'my' ? S.myZones.battleZone : S.oppZones.battleZone;
+  const creature = cards[idx];
+  if (!creature) return;
+  const stack = creature.stack || [];
+  // 表示は下→上の順
+  const all = [...stack, { id: creature.id, img: creature.img }];
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'peek-stack-modal';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:600px">
+      <h3>スタック確認（${all.length}枚）</h3>
+      <div class="card-list">
+        ${all.map((c, i) => `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div class="card"
+              onmouseenter="startHover('${c.img}')" onmouseleave="endHover()"
+              onmousedown="startLongPress('${c.img}')" onmouseup="cancelLongPress()">
+              <img src="${c.img}" alt="">
+            </div>
+            <span style="font-size:10px;color:var(--text2)">
+              ${i === all.length-1 ? '▲ 一番上（表）' : i === 0 ? '▼ 一番下（底）' : `下から${i+1}枚目`}
+            </span>
+          </div>`).join('')}
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closePeekStack()">閉じる</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) closePeekStack(); });
+  document.body.appendChild(modal);
+}
+function closePeekStack() {
+  const el = document.getElementById('peek-stack-modal');
+  if (el) el.remove();
 }
 
 // ── SHIELD BREAK ───────────────────────────────────────────
@@ -1108,6 +1270,11 @@ window.confirmDeck      = confirmDeck;
 window.drawCard         = drawCard;
 window.endTurn          = endTurn;
 window.onDragStart      = onDragStart;
+window.onDragOverCard   = onDragOverCard;
+window.onDragLeaveCard  = onDragLeaveCard;
+window.onDropOnCard     = onDropOnCard;
+window.peekStack        = peekStack;
+window.closePeekStack   = closePeekStack;
 window.onDragEnd        = onDragEnd;
 window.onDragOver       = onDragOver;
 window.onDragLeave      = onDragLeave;
